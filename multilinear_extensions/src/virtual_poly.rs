@@ -138,7 +138,29 @@ impl<'a, E: ExtensionField> VirtualPolynomial<'a, E> {
         curr_index
     }
 
-    pub(crate) fn add_monomial_terms(&mut self, monomial_terms: MonomialTermsType<'a, E>) {
+    // Add a product of list of multilinear extensions to self
+    /// Returns an error if the list is empty.
+    ///
+    /// mle in product must be in same num_vars() in same product,
+    /// while different product can have different num_vars()
+    ///
+    /// The MLEs will be multiplied together, and then multiplied by the scalar
+    /// `scalar`.
+    pub fn add_mle_list(&mut self, product: Vec<ArcMultilinearExtension<'a, E>>, scalar: E) {
+        let product: Vec<Expression<E>> = product
+            .into_iter()
+            .map(|mle| mle as _)
+            .map(|mle: Arc<MultilinearExtension<'_, _>>| {
+                Expression::WitIn(self.register_mle(mle) as u16)
+            })
+            .collect_vec();
+        self.add_monomial_terms(vec![Term {
+            scalar: Either::Right(scalar),
+            product,
+        }]);
+    }
+
+    pub fn add_monomial_terms(&mut self, monomial_terms: MonomialTermsType<'a, E>) {
         let terms = monomial_terms
             .into_iter()
             .map(|Term { scalar, product }| {
