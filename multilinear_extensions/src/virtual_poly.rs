@@ -151,7 +151,11 @@ impl<'a, E: ExtensionField> VirtualPolynomial<'a, E> {
             .into_iter()
             .map(|mle| mle as _)
             .map(|mle: Arc<MultilinearExtension<'_, _>>| {
-                Expression::WitIn(self.register_mle(mle) as u16)
+                let mle_ptr: usize = Arc::as_ptr(&mle) as *const () as usize;
+                Expression::WitIn(match self.raw_pointers_lookup_table.get(&mle_ptr) {
+                    Some(index) => *index as u16,
+                    None => self.register_mle(mle) as u16,
+                })
             })
             .collect_vec();
         self.add_monomial_terms(vec![Term {
