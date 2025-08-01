@@ -248,6 +248,14 @@ impl<'a, E: ExtensionField> PartialEq for FieldType<'a, E> {
             _ => self.is_zero() && other.is_zero(),
         }
     }
+
+    pub fn into_owned(&self) -> FieldType<'static, E> {
+        match self {
+            FieldType::Base(smart_slice) => FieldType::Base(smart_slice.into_owned()),
+            FieldType::Ext(smart_slice) => FieldType::Ext(smart_slice.into_owned()),
+            FieldType::Unreachable => unreachable!(),
+        }
+    }
 }
 
 impl<'a, E: ExtensionField> IntoMLE<MultilinearExtension<'a, E>> for FieldType<'a, E> {
@@ -308,6 +316,13 @@ impl<'a, E: ExtensionField> MultilinearExtension<'a, E> {
             Either::Right(self)
         } else {
             Either::Left(self)
+        }
+    }
+
+    pub fn into_owned(&self) -> MultilinearExtension<'static, E> {
+        MultilinearExtension {
+            evaluations: self.evaluations.into_owned(),
+            num_vars: self.num_vars,
         }
     }
 
