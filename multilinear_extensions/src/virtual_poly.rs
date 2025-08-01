@@ -152,9 +152,11 @@ impl<'a, E: ExtensionField> VirtualPolynomial<'a, E> {
             .map(|mle: Arc<MultilinearExtension<'_, _>>| {
                 let mle_ptr: usize = Arc::as_ptr(&mle) as *const () as usize;
                 if let Some(index) = self.raw_pointers_lookup_table.get(&mle_ptr) {
+                    println!("Poly already existed");
                     Expression::WitIn(*index as u16)
                 } else {
-                    Expression::WitIn(self.register_mle(mle.as_ref().into_owned().into()) as u16)
+                    println!("Making new poly");
+                    Expression::WitIn(self.register_mle(mle.clone()) as u16)
                 }
             })
             .collect_vec();
