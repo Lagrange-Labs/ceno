@@ -150,7 +150,12 @@ impl<'a, E: ExtensionField> VirtualPolynomial<'a, E> {
         let product: Vec<Expression<E>> = product
             .into_iter()
             .map(|mle: Arc<MultilinearExtension<'_, _>>| {
-                Expression::WitIn(self.register_mle(mle.as_ref().into_owned().into()) as u16)
+                let mle_ptr: usize = Arc::as_ptr(&mle) as *const () as usize;
+                if let Some(index) = self.raw_pointers_lookup_table.get(&mle_ptr) {
+                    Expression::WitIn(*index as u16)
+                } else {
+                    Expression::WitIn(self.register_mle(mle.as_ref().into_owned().into()) as u16)
+                }
             })
             .collect_vec();
         self.add_monomial_terms(vec![Term {
