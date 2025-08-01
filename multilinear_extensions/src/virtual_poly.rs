@@ -150,11 +150,7 @@ impl<'a, E: ExtensionField> VirtualPolynomial<'a, E> {
         let product: Vec<Expression<E>> = product
             .into_iter()
             .map(|mle: Arc<MultilinearExtension<'_, _>>| {
-                let mle_ptr: usize = Arc::as_ptr(&mle) as *const () as usize;
-                Expression::WitIn(match self.raw_pointers_lookup_table.get(&mle_ptr) {
-                    Some(index) => *index as u16,
-                    None => self.register_mle(mle.as_ref().into_owned().into()) as u16,
-                })
+                Expression::WitIn(self.register_mle(mle.as_ref().into_owned().into()) as u16)
             })
             .collect_vec();
         self.add_monomial_terms(vec![Term {
@@ -177,6 +173,7 @@ impl<'a, E: ExtensionField> VirtualPolynomial<'a, E> {
             self.aux_info.max_num_variables
         );
 
+        let mle = mle.as_ref().into_owned().into();
         let mle_ptr = Arc::as_ptr(&mle) as *const () as usize;
 
         // check if this mle already exists in the virtual polynomial
@@ -194,7 +191,8 @@ impl<'a, E: ExtensionField> VirtualPolynomial<'a, E> {
             // - add the MLE to the MLE list;
             // - multiple each product by MLE and its coefficient.
             for term in product.terms.iter_mut() {
-                // TODO: mul by coeff and MLE
+                either::for_both!(&mut term.scalar, c => *c = *c * coefficient);
+                term.product.push(mle_index);
             }
         }
 
