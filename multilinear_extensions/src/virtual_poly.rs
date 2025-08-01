@@ -149,12 +149,11 @@ impl<'a, E: ExtensionField> VirtualPolynomial<'a, E> {
     pub fn add_mle_list(&mut self, product: Vec<ArcMultilinearExtension<'a, E>>, scalar: E) {
         let product: Vec<Expression<E>> = product
             .into_iter()
-            .map(|mle| mle as _)
             .map(|mle: Arc<MultilinearExtension<'_, _>>| {
                 let mle_ptr: usize = Arc::as_ptr(&mle) as *const () as usize;
                 Expression::WitIn(match self.raw_pointers_lookup_table.get(&mle_ptr) {
                     Some(index) => *index as u16,
-                    None => self.register_mle(mle) as u16,
+                    None => self.register_mle(mle.as_ref().into_owned().into()) as u16,
                 })
             })
             .collect_vec();
