@@ -704,7 +704,7 @@ impl<'a, E: ExtensionField> IOPProverState<'a, E> {
                     if !poly.is_mut() {
                         *poly = Arc::new(poly.fix_variables_parallel(&[r]));
                     } else {
-                        let poly = Arc::get_mut(poly).unwrap();
+                        let poly = Arc::make_mut(poly);
                         poly.fix_variables_in_place_parallel(&[r])
                     }
                 }
