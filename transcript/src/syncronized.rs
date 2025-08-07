@@ -7,7 +7,7 @@ use poseidon::challenger::CanObserve;
 
 use crate::{Challenge, Transcript};
 
-fn receive_or_yield<R>(receiver: &Receiver<R>) -> std::result::Result<R, RecvError> {
+pub fn receive_or_yield<R>(receiver: &Receiver<R>) -> std::result::Result<R, RecvError> {
     loop {
         match receiver.try_recv() {
             Ok(t) => return Ok(t),
@@ -18,7 +18,6 @@ fn receive_or_yield<R>(receiver: &Receiver<R>) -> std::result::Result<R, RecvErr
                     match receiver.recv_timeout(std::time::Duration::from_millis(10)) {
                         Ok(t) => return Ok(t),
                         Err(RecvTimeoutError::Timeout) => {
-                            // dbg!("receive idle");
                             continue;
                         }
                         Err(RecvTimeoutError::Disconnected) => return Err(RecvError),

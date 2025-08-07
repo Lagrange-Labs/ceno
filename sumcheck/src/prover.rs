@@ -277,7 +277,9 @@ impl<'a, E: ExtensionField> IOPProverState<'a, E> {
                 .map(|_| IOPProverState::default())
                 .collect::<Vec<_>>();
             for _ in 0..max_thread_id {
-                if let Some((index, prover_msg)) = rx_prover_state.recv().unwrap() {
+                if let Some((index, prover_msg)) =
+                    transcript::syncronized::receive_or_yield(&rx_prover_state).unwrap()
+                {
                     prover_states[index] = prover_msg
                 } else {
                     println!("got empty msg, which is normal if virtual poly is constant function")
