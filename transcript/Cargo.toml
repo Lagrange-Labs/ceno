@@ -16,6 +16,7 @@ itertools.workspace = true
 p3.workspace = true
 poseidon.workspace = true
 serde.workspace = true
+rayon.workspace = true
 
 [features]
 nightly-features = [

@@ -1,6 +1,6 @@
 use std::array;
 
-use crossbeam_channel::{Receiver, Sender, bounded};
+use crossbeam_channel::{Receiver, Sender, TryRecvError, bounded};
 use ff_ext::ExtensionField;
 use p3::challenger::{CanSampleBits, GrindingChallenger};
 use poseidon::challenger::CanObserve;
@@ -67,17 +67,47 @@ impl<E: ExtensionField> Transcript<E> for TranscriptSyncronized<E> {
     }
 
     fn sample_and_append_challenge(&mut self, _label: &'static [u8]) -> Challenge<E> {
-        Challenge {
-            elements: self.challenge_rx[self.rolling_index].recv().unwrap(),
+        loop {
+            match self.challenge_rx[self.rolling_index].try_recv() {
+                Ok(val) => {
+                    return Challenge { elements: val };
+                }
+                Err(TryRecvError::Empty) => {
+                    rayon::yield_now();
+                }
+                Err(e) => {
+                    panic!("Error: {}", e);
+                }
+            }
         }
     }
 
     fn read_field_element_exts(&self) -> Vec<E> {
-        self.ef_append_rx[self.rolling_index].recv().unwrap()
+        loop {
+            match self.ef_append_rx[self.rolling_index].try_recv() {
+                Ok(val) => return val,
+                Err(TryRecvError::Empty) => {
+                    rayon::yield_now();
+                }
+                Err(e) => {
+                    panic!("Error: {}", e);
+                }
+            }
+        }
     }
 
     fn read_field_element(&self) -> E::BaseField {
-        self.bf_append_rx[self.rolling_index].recv().unwrap()[0]
+        loop {
+            match self.bf_append_rx[self.rolling_index].try_recv() {
+                Ok(val) => return val[0],
+                Err(TryRecvError::Empty) => {
+                    rayon::yield_now();
+                }
+                Err(e) => {
+                    panic!("Error: {}", e);
+                }
+            }
+        }
     }
 
     fn read_challenge(&mut self) -> Challenge<E> {
