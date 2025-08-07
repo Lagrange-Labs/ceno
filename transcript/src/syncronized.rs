@@ -12,9 +12,8 @@ pub fn receive_or_yield<R>(receiver: &Receiver<R>) -> std::result::Result<R, Rec
         match receiver.try_recv() {
             Ok(t) => return Ok(t),
             Err(TryRecvError::Empty) => match rayon::yield_now() {
-                None => return receiver.recv(),
                 Some(rayon::Yield::Executed) => continue,
-                Some(rayon::Yield::Idle) => {
+                None | Some(rayon::Yield::Idle) => {
                     match receiver.recv_timeout(std::time::Duration::from_millis(10)) {
                         Ok(t) => return Ok(t),
                         Err(RecvTimeoutError::Timeout) => {
