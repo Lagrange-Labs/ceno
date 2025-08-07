@@ -1,12 +1,34 @@
 use std::array;
 
-use crossbeam_channel::{Receiver, Sender, TryRecvError, bounded};
+use crossbeam_channel::{Receiver, RecvError, RecvTimeoutError, Sender, TryRecvError, bounded};
 use ff_ext::ExtensionField;
 use p3::challenger::{CanSampleBits, GrindingChallenger};
 use poseidon::challenger::CanObserve;
 
 use crate::{Challenge, Transcript};
 
+fn receive_or_yield<R>(receiver: &Receiver<R>) -> std::result::Result<R, RecvError> {
+    loop {
+        match receiver.try_recv() {
+            Ok(t) => return Ok(t),
+            Err(TryRecvError::Empty) => match rayon::yield_now() {
+                None => return receiver.recv(),
+                Some(rayon::Yield::Executed) => continue,
+                Some(rayon::Yield::Idle) => {
+                    match receiver.recv_timeout(std::time::Duration::from_millis(10)) {
+                        Ok(t) => return Ok(t),
+                        Err(RecvTimeoutError::Timeout) => {
+                            // dbg!("receive idle");
+                            continue;
+                        }
+                        Err(RecvTimeoutError::Disconnected) => return Err(RecvError),
+                    }
+                }
+            },
+            Err(TryRecvError::Disconnected) => return Err(RecvError),
+        }
+    }
+}
 #[derive(Clone)]
 pub struct TranscriptSyncronized<E: ExtensionField> {
     ef_append_tx: [Sender<Vec<E>>; 2],
@@ -67,47 +89,17 @@ impl<E: ExtensionField> Transcript<E> for TranscriptSyncronized<E> {
     }
 
     fn sample_and_append_challenge(&mut self, _label: &'static [u8]) -> Challenge<E> {
-        loop {
-            match self.challenge_rx[self.rolling_index].try_recv() {
-                Ok(val) => {
-                    return Challenge { elements: val };
-                }
-                Err(TryRecvError::Empty) => {
-                    rayon::yield_now();
-                }
-                Err(e) => {
-                    panic!("Error: {}", e);
-                }
-            }
+        Challenge {
+            elements: receive_or_yield(&self.challenge_rx[self.rolling_index]).unwrap(),
         }
     }
 
     fn read_field_element_exts(&self) -> Vec<E> {
-        loop {
-            match self.ef_append_rx[self.rolling_index].try_recv() {
-                Ok(val) => return val,
-                Err(TryRecvError::Empty) => {
-                    rayon::yield_now();
-                }
-                Err(e) => {
-                    panic!("Error: {}", e);
-                }
-            }
-        }
+        receive_or_yield(&self.ef_append_rx[self.rolling_index]).unwrap()
     }
 
     fn read_field_element(&self) -> E::BaseField {
-        loop {
-            match self.bf_append_rx[self.rolling_index].try_recv() {
-                Ok(val) => return val[0],
-                Err(TryRecvError::Empty) => {
-                    rayon::yield_now();
-                }
-                Err(e) => {
-                    panic!("Error: {}", e);
-                }
-            }
-        }
+        receive_or_yield(&self.bf_append_rx[self.rolling_index]).unwrap()[0]
     }
 
     fn read_challenge(&mut self) -> Challenge<E> {
