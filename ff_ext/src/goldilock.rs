@@ -6,6 +6,8 @@ pub mod impl_goldilocks {
         array_try_from_uniform_bytes, impl_from_uniform_bytes_for_binomial_extension,
         poseidon::PoseidonField,
     };
+    #[cfg(debug_assertions)]
+    use p3::goldilocks::Poseidon2GoldilocksHL;
     use p3::{
         challenger::DuplexChallenger,
         field::{
@@ -15,7 +17,6 @@ pub mod impl_goldilocks {
         goldilocks::{
             Goldilocks, HL_GOLDILOCKS_8_EXTERNAL_ROUND_CONSTANTS,
             HL_GOLDILOCKS_8_INTERNAL_ROUND_CONSTANTS, MATRIX_DIAG_8_GOLDILOCKS,
-            Poseidon2GoldilocksHL,
         },
         merkle_tree::MerkleTreeMmcs,
         poseidon2::{
@@ -28,7 +29,7 @@ pub mod impl_goldilocks {
 
     #[cfg(debug_assertions)]
     use crate::poseidon::impl_instruments::*;
-    #[cfg(debug_assertions)]
+
     use p3::symmetric::CryptographicPermutation;
 
     pub type GoldilocksExt2 = BinomialExtensionField<Goldilocks, 2>;
@@ -131,6 +132,7 @@ pub mod impl_goldilocks {
 
     impl CryptographicPermutation<[Goldilocks; WIDTH]> for NoAllocPoseidon {}
 
+    #[cfg(debug_assertions)]
     impl CryptographicPermutation<[Goldilocks; WIDTH]> for Instrumented<NoAllocPoseidon> {}
 
     impl PoseidonField for Goldilocks {
@@ -156,13 +158,7 @@ pub mod impl_goldilocks {
 
         #[cfg(not(debug_assertions))]
         fn get_default_perm() -> Self::P {
-            Poseidon2GoldilocksHL::new(
-                ExternalLayerConstants::<Goldilocks, POSEIDON2_GOLDILICK_WIDTH>::new_from_saved_array(
-                    HL_GOLDILOCKS_8_EXTERNAL_ROUND_CONSTANTS,
-                    new_array,
-                ),
-                new_array(HL_GOLDILOCKS_8_INTERNAL_ROUND_CONSTANTS).to_vec(),
-            )
+            NoAllocPoseidon {}
         }
 
         fn get_default_sponge() -> Self::S {
