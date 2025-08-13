@@ -233,6 +233,14 @@ impl<'a, E: ExtensionField> FieldType<'a, E> {
             FieldType::Unreachable => unreachable!(),
         }
     }
+
+    pub fn into_owned(&self) -> FieldType<'static, E> {
+        match self {
+            FieldType::Base(smart_slice) => FieldType::Base(smart_slice.into_owned()),
+            FieldType::Ext(smart_slice) => FieldType::Ext(smart_slice.into_owned()),
+            FieldType::Unreachable => unreachable!(),
+        }
+    }
 }
 
 impl<'a, E: ExtensionField> PartialEq for FieldType<'a, E> {
@@ -246,14 +254,6 @@ impl<'a, E: ExtensionField> PartialEq for FieldType<'a, E> {
                 .zip_eq(b.par_iter())
                 .all(|(a, b)| E::from_base(*a) == *b),
             _ => self.is_zero() && other.is_zero(),
-        }
-    }
-
-    pub fn into_owned(&self) -> FieldType<'static, E> {
-        match self {
-            FieldType::Base(smart_slice) => FieldType::Base(smart_slice.into_owned()),
-            FieldType::Ext(smart_slice) => FieldType::Ext(smart_slice.into_owned()),
-            FieldType::Unreachable => unreachable!(),
         }
     }
 }
