@@ -84,6 +84,11 @@ pub struct BasefoldVerifierParams<E: ExtensionField, Spec: BasefoldSpec<E>> {
 impl_pcs_fri_param!(BasefoldProverParams);
 impl_pcs_fri_param!(BasefoldVerifierParams);
 
+#[derive(Serialize, Deserialize)]
+#[serde(bound(
+    serialize = "MerkleTree<E::BaseField>: Serialize",
+    deserialize = "MerkleTree<E::BaseField>: Deserialize<'de>"
+))]
 /// A polynomial commitment together with all the data (e.g., the codeword, and Merkle tree)
 /// used to generate this commitment and for assistant in opening
 pub struct BasefoldCommitmentWithWitness<E: ExtensionField>
